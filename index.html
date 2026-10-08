@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bestseal · Aprovação de amostras (demonstração)</title>
+<style>
+:root{--tinta:#17252e;--fundo:#eef1f3;--azul:#1b5e7a;--ambar:#f2b134;--verde:#2f7d4f;--verm:#b3392f;--linha:#d5dce1}
+*{box-sizing:border-box}
+body{margin:0;font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--tinta);background:var(--fundo)}
+header{background:var(--tinta);color:#fff;display:flex;justify-content:space-between;align-items:center;padding:.7rem 1rem}
+.logo{color:#fff;font-weight:800;font-size:1.3rem;text-decoration:none}
+.logo i{display:block;height:5px;border-radius:5px;background:var(--ambar);margin-top:2px}
+.user{display:flex;gap:.8rem;align-items:center;font-size:.9rem}
+main{max-width:860px;margin:0 auto;padding:1rem}
+h1{font-size:1.5rem;margin:.5rem 0}h2{font-size:1.05rem;margin:1rem 0 .3rem}
+.card{background:#fff;border:1px solid var(--linha);border-radius:10px;padding:1rem;margin:0 0 1rem;display:block}
+.topo{display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap}
+.mudo{color:#5d6d78;font-size:.9rem}.txt{white-space:pre-wrap;margin:0}
+label{display:block;font-weight:600;margin-bottom:1rem}
+input,textarea{display:block;width:100%;margin-top:.3rem;padding:.65rem;font:inherit;border:1px solid #aab6bd;border-radius:8px;background:#fff}
+input[type=file]{border:0;padding-left:0}
+:focus-visible{outline:3px solid var(--ambar);outline-offset:2px}
+.btn{display:inline-block;min-height:44px;padding:.65rem 1.1rem;border:0;border-radius:8px;background:var(--azul);color:#fff;font:inherit;font-weight:600;text-decoration:none;cursor:pointer;text-align:center}
+.btn.sec{background:#fff;color:var(--azul);border:1px solid var(--azul)}
+.btn.aprovar{background:var(--verde)}.btn.recusar{background:var(--verm)}
+.link{background:none;border:0;color:inherit;text-decoration:underline;font:inherit;cursor:pointer;padding:.3rem}
+.acoes{display:flex;gap:.7rem;flex-wrap:wrap;margin:0 0 1rem}.acoes>*{flex:1 1 180px}
+.aviso{background:#fff4d6;border:1px solid var(--ambar);border-radius:8px;padding:.7rem 1rem;margin:0 0 1rem}
+.banner{display:block;background:var(--ambar);color:var(--tinta);font-weight:700;padding:.9rem 1rem;border-radius:10px;text-decoration:none;margin-bottom:1rem}
+.abas{display:flex;gap:.4rem;overflow-x:auto;margin:.5rem 0 1rem}
+.abas a{padding:.4rem .9rem;border-radius:99px;background:#fff;border:1px solid var(--linha);color:var(--tinta);text-decoration:none;white-space:nowrap}
+.abas a.on{background:var(--azul);color:#fff;border-color:var(--azul)}
+.item{display:flex;justify-content:space-between;align-items:center;gap:1rem;text-decoration:none;color:inherit}
+.item div{display:flex;flex-direction:column}
+.tag{padding:.15rem .7rem;border-radius:99px;font-size:.85rem;font-weight:700;white-space:nowrap;background:#dde3e7}
+.tag.pendente{background:var(--ambar)}.tag.aprovada{background:var(--verde);color:#fff}.tag.recusada{background:var(--verm);color:#fff}
+.recusa{border-left:6px solid var(--verm)}.recusa p{margin:.3rem 0;white-space:pre-wrap}
+.arq{padding:.3rem 0;border-bottom:1px solid var(--linha)}
+.ev{padding:.5rem 0;border-bottom:1px solid var(--linha)}.ev span{display:block}
+.login{max-width:380px;margin:10vh auto 0}.login h1{margin:0}
+.vazio{text-align:center;color:#5d6d78}
+</style></head><body><div id="app"></div>
+<script>
+const K='bestseal_demo_v1',ST={rascunho:'Rascunho',pendente:'Pendente',aprovada:'Aprovada',recusada:'Recusada'};
+const USERS={laboratorio:{senha:'lab123',perfil:'lab',nome:'Laboratório P&D'},admin:{senha:'admin123',perfil:'admin',nome:'Gerente geral'}};
+const EV={criada:'Amostra criada',enviada:'Enviada para aprovação',reenviada:'Reenviada para aprovação',aprovada:'Aprovada',recusada:'Recusada'};
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const now=()=>new Date().toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'});
+const $=s=>document.querySelector(s);
+function seed(){const l='Laboratório P&D',d=now();return{n:2,amostras:[{id:1,u:Date.now(),nome:'Selante PU-450 (amostra da China)',objetivo:'Avaliar cura e aderência em substrato de alumínio.',esp:'Cura em 24h a 25 °C.\nDureza Shore A 40.',arquivos:['laudo-pu450.pdf'],status:'pendente',hist:[{e:'enviada',t:'',a:l,d},{e:'criada',t:'',a:l,d}]}]}}
+function load(){try{return JSON.parse(localStorage.getItem(K))||seed()}catch(e){return seed()}}
+function save(){try{localStorage.setItem(K,JSON.stringify(db))}catch(e){}}
+let db=load(),user=null,filtro='',aviso='';
+try{user=JSON.parse(sessionStorage.getItem('u'))}catch(e){}
+const get=id=>db.amostras.find(a=>a.id==id);
+const log=(a,e,t='')=>{a.hist.unshift({e,t,a:user.nome,d:now()});a.u=Date.now();save()};
+const pend=()=>db.amostras.filter(a=>a.status=='pendente').length;
+const editavel=a=>user.perfil=='lab'&&['rascunho','recusada'].includes(a.status);
+function shell(c){const m=aviso?`<p class="aviso">${esc(aviso)}</p>`:'';aviso='';
+return `<header><a class="logo" href="#/">Bestseal<i></i></a><div class="user"><span>${esc(user.nome)}</span><button class="link" onclick="sair()">Sair</button></div></header><main>${m}${c}</main>`}
+function render(){const h=location.hash.slice(1)||'/',app=$('#app');
+if(!user){app.innerHTML=`<main><section class="card login"><h1>Bestseal</h1><p class="mudo">Sistema de aprovação de amostras</p><p class="aviso">${esc(aviso)||'Versão de demonstração: os dados ficam só neste navegador.'}</p>
+<label>Usuário<input id="u" autocomplete="username"></label><label>Senha<input id="s" type="password" onkeydown="if(event.key=='Enter')entrar()"></label><button class="btn" onclick="entrar()">Entrar</button>
+<p class="mudo">Teste: laboratorio / lab123 ou admin / admin123</p></section></main>`;aviso='';return}
+let m;if(m=h.match(/^\/amostra\/(\d+)$/))app.innerHTML=detalhe(m[1]);
+else if(h=='/nova')app.innerHTML=form();
+else if(m=h.match(/^\/editar\/(\d+)$/))app.innerHTML=form(m[1]);
+else app.innerHTML=lista()}
+function lista(){const adm=user.perfil=='admin';let r=db.amostras.filter(a=>!(adm&&a.status=='rascunho')&&(!filtro||a.status==filtro)).sort((a,b)=>b.u-a.u);
+const n=pend(),ban=adm&&n?`<a class="banner" href="#/" onclick="filtro='pendente'">Você tem ${n} amostra${n>1?'s':''} pendente${n>1?'s':''} para analisar</a>`:'';
+const abas=['',...Object.keys(ST).filter(k=>!(adm&&k=='rascunho'))].map(k=>`<a href="#/" class="${filtro==k?'on':''}" onclick="filtro='${k}'">${k?ST[k]:'Todas'}</a>`).join('');
+return shell(`${ban}<div class="topo"><h1>Amostras</h1>${adm?'':'<a class="btn" href="#/nova">Nova amostra</a>'}</div><nav class="abas">${abas}</nav>`+
+(r.map(a=>`<a class="card item" href="#/amostra/${a.id}"><div><strong>${esc(a.nome)}</strong><span class="mudo">Atualizada em ${esc(a.hist[0].d)}</span></div><span class="tag ${a.status}">${ST[a.status]}</span></a>`).join('')||`<p class="card vazio">Nenhuma amostra aqui.</p>`)+
+`<p class="mudo"><button class="link" onclick="resetar()">Restaurar dados de demonstração</button></p>`)}
+function form(id){if(user.perfil!='lab')return lista();const a=id?get(id):{nome:'',objetivo:'',esp:'',arquivos:[]};if(id&&!editavel(a))return lista();
+return shell(`<h1>${id?'Editar':'Nova'} amostra</h1><div class="card"><label>Nome da amostra<input id="nome" value="${esc(a.nome)}"></label>
+<label>Objetivo<textarea id="obj" rows="3">${esc(a.objetivo)}</textarea></label><label>Especificações<textarea id="esp" rows="8">${esc(a.esp)}</textarea></label>
+<p class="mudo">Arquivos já anexados: ${esc(a.arquivos.join(', ')||'nenhum')}</p>
+<label>Anexar arquivos<input id="arq" type="file" multiple></label><p class="mudo">Nesta demonstração só o nome do arquivo é guardado.</p>
+<div class="acoes"><button class="btn sec" onclick="salvar(${id||0},false)">Salvar rascunho</button><button class="btn" onclick="salvar(${id||0},true)">Enviar para aprovação</button></div></div>`)}
+function detalhe(id){const a=get(id);if(!a||(user.perfil=='admin'&&a.status=='rascunho'))return lista();
+const mt=a.status=='recusada'&&a.hist.find(x=>x.e=='recusada'),ed=editavel(a);
+return shell(`<div class="topo"><h1>${esc(a.nome)}</h1><span class="tag ${a.status}">${ST[a.status]}</span></div>
+${mt?`<div class="card recusa"><strong>Motivo da recusa</strong><p>${esc(mt.t)}</p><span class="mudo">${esc(mt.a)}, ${esc(mt.d)}</span></div>`:''}
+<section class="card"><h2>Objetivo</h2><p class="txt">${esc(a.objetivo)||'—'}</p><h2>Especificações</h2><p class="txt">${esc(a.esp)||'—'}</p><h2>Arquivos</h2>
+${a.arquivos.map(f=>`<div class="arq">${esc(f)}</div>`).join('')||'<p class="mudo">Nenhum arquivo anexado.</p>'}</section>
+${ed?`<div class="acoes"><a class="btn sec" href="#/editar/${a.id}">Editar</a><button class="btn" onclick="enviar(${a.id})">${a.status=='recusada'?'Reenviar':'Enviar'} para aprovação</button></div>`:''}
+${user.perfil=='admin'&&a.status=='pendente'?`<div class="card"><h2>Sua decisão</h2><label>Observações<textarea id="obs" rows="4" placeholder="Obrigatório para recusar. Diga o que precisa mudar."></textarea></label>
+<div class="acoes"><button class="btn recusar" onclick="decidir(${a.id},false)">Recusar</button><button class="btn aprovar" onclick="decidir(${a.id},true)">Aprovar</button></div></div>`:''}
+<section class="card"><h2>Histórico</h2>${a.hist.map(x=>`<div class="ev"><strong>${EV[x.e]}</strong><span class="mudo">${esc(x.a)}, ${esc(x.d)}</span>${x.t?`<p class="txt">${esc(x.t)}</p>`:''}</div>`).join('')}</section>
+<a class="mudo" href="#/">Voltar para a lista</a>`)}
+function entrar(){const u=USERS[$('#u').value.trim()];if(u&&u.senha==$('#s').value){user=u;try{sessionStorage.setItem('u',JSON.stringify(u))}catch(e){}location.hash='#/'}else aviso='Usuário ou senha incorretos.';render()}
+function sair(){user=null;try{sessionStorage.removeItem('u')}catch(e){}location.hash='#/';render()}
+function salvar(id,env){const nome=$('#nome').value.trim(),obj=$('#obj').value.trim();
+if(!nome||(env&&!obj)){aviso='Preencha o nome da amostra'+(env?' e o objetivo para enviar.':'.');return render()}
+const novos=[...$('#arq').files].map(f=>f.name);let a=id&&get(id);
+if(!a){a={id:db.n++,nome,objetivo:obj,esp:'',arquivos:[],status:'rascunho',hist:[],u:0};db.amostras.push(a);log(a,'criada')}
+Object.assign(a,{nome,objetivo:obj,esp:$('#esp').value.trim(),arquivos:[...a.arquivos,...novos]});save();
+if(env)return enviar(a.id);location.hash='#/amostra/'+a.id}
+function enviar(id){const a=get(id);if(!a.objetivo.trim()){aviso='Preencha o objetivo antes de enviar.';return render()}
+const re=a.status=='recusada';a.status='pendente';log(a,re?'reenviada':'enviada');aviso='Amostra enviada para aprovação.';location.hash='#/amostra/'+id;render()}
+function decidir(id,ok){const a=get(id),o=$('#obs').value.trim();if(!ok&&!o){aviso='Escreva o motivo da recusa nas observações.';return render()}
+a.status=ok?'aprovada':'recusada';log(a,a.status,o);aviso=ok?'Amostra aprovada.':'Amostra recusada e devolvida ao laboratório.';filtro='';location.hash='#/';render()}
+function resetar(){if(confirm('Apagar tudo e voltar aos dados de demonstração?')){db=seed();save();filtro='';render()}}
+addEventListener('hashchange',render);render();
+</script></body></html>
